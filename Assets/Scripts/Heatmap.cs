@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 public class Heatmap : MonoBehaviour
 {
@@ -47,11 +48,15 @@ public class Heatmap : MonoBehaviour
 		if(!feedDataFromOutside)
 			UpdatePositions ();
 
-		var materialProperty = new MaterialPropertyBlock();
 
-		materialProperty.SetFloat("_Radius", Mathf.Deg2Rad * radius);
-		materialProperty.SetVectorArray ("_Points", positions);
-		gameObject.GetComponent<Renderer> ().SetPropertyBlock (materialProperty);
+        if (positions.Length > 0)
+        {
+            var materialProperty = new MaterialPropertyBlock();
+
+            materialProperty.SetFloat("_Radius", Mathf.Deg2Rad * radius);
+            materialProperty.SetVectorArray("_Points", positions);
+            gameObject.GetComponent<Renderer>().SetPropertyBlock(materialProperty);
+        }
     }
 
 	private void UpdatePositions()
@@ -67,10 +72,10 @@ public class Heatmap : MonoBehaviour
 		}
 	}
 
-	public void UpdatePosition(Vector3 position)
+	public void UpdatePosition(List<Vector4> gazePositions)
 	{
-		material.SetInt("_PointsLength", 1);
+		material.SetInt("_PointsLength", gazePositions.Count);
 
-		positions [0] = position;
+        positions = gazePositions.ToArray();
 	}
 }

@@ -11,7 +11,7 @@ public enum StorageMethod
 	JSON
 }
 
-public class DataStorage
+public static class DataStorage
 {
 	private static readonly string SavingLocation = Application.persistentDataPath;
 
@@ -24,6 +24,8 @@ public class DataStorage
 	public static void SaveToFile<T>(T dataToStore, StorageMethod method, string name)
 	{
 		string fileName = SavingLocation + name + "." + method.ToString().ToLower();
+
+        Debug.Log("File: " + fileName);
 
 		try
 		{
@@ -46,12 +48,13 @@ public class DataStorage
 					serializer.Serialize(stream, dataToStore);
 
 					stream.Close();
-					stream.Dispose();
 				}
 				break;
 
 			case StorageMethod.JSON:
 				string serializedData = JsonUtility.ToJson(dataToStore, true);
+
+                    Debug.Log(serializedData);
 				File.WriteAllText(fileName, serializedData);
 				break;
 			}
@@ -74,7 +77,9 @@ public class DataStorage
 
 		string fileName = SavingLocation + name + "." + method.ToString().ToLower();
 
-		try
+        Debug.Log("File: " + fileName);
+
+        try
 		{
 			switch (method)
 			{
@@ -126,7 +131,6 @@ public class DataStorage
 			try
 			{
 				File.Delete(fileName);
-
 			}
 			catch (System.Exception ex)
 			{

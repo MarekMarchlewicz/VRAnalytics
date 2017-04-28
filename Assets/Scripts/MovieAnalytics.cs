@@ -1,20 +1,28 @@
-﻿using UnityEngine.Video;
+﻿using UnityEngine;
+using UnityEngine.Video;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class MovieAnalytics : MonoBehaviour 
 {
 	private enum Mode { Read, Write }
 
-	[SerializeField] private Mode mode;
+	[SerializeField]
+    private Mode mode;
 
-	[SerializeField] private VideoPlayer player;
+	[SerializeField]
+    private VideoPlayer player;
 
-	[SerializeField] private Heatmap heatmap;
+	[SerializeField]
+    private Heatmap heatmap;
 
-	[SerializeField] private Transform cameraTransform;
+	[SerializeField]
+    private Transform cameraTransform;
 
-	[SerializeField] private float angleDifferenceToTriggerEvent = 2f;
+	[SerializeField]
+    private float angleDifferenceToTriggerEvent = 2f;
+
+    [SerializeField]
+    private float timeStep = 0.5f;
 
     private ViewData view;
 
@@ -24,7 +32,9 @@ public class MovieAnalytics : MonoBehaviour
 
 	private Quaternion lastRotation;
 
-	private void Awake()
+    private List<Vector4> positions;
+
+    private void Awake()
 	{
 		lastRotation = cameraTransform.rotation;
 
@@ -40,28 +50,45 @@ public class MovieAnalytics : MonoBehaviour
 		player.Play ();
 	}
 
+    private void OnDestroy()
+    {
+        if(isPlaying)
+        {
+            OnVideoEnded(player);
+        }
+    }
+
 	private void OnVideoStarted (VideoPlayer video)
 	{
 		Debug.Log ("Started");
 
 		isPlaying = true;
 
-		if (mode == Mode.Write) 
+        analyticsData = DataStorage.LoadFromFIle<AnalyticsData>(StorageMethod.Binary, "ViewAnalyticsData");
+        if (analyticsData == null)
+        {
+            analyticsData = new AnalyticsData();
+
+            Debug.Log("CREATING NEW ANALYTICS DATA");
+        }
+
+        Debug.Log(analyticsData.views.Count.ToString() + "  views");
+
+        if (mode == Mode.Write) 
 		{
-            analyticsData = DataStorage.LoadFromFIle<AnalyticsData>(StorageMethod.JSON, "ViewAnalyticsData");
-
-            if(analyticsData == null)
-                analyticsData = new AnalyticsData ();
-
             view = new ViewData();
+
+            InvokeRepeating("TryToGetAnalyticsPoint", 0f, timeStep);
 		}
 		else 
-		{
-			analyticsData = DataStorage.LoadFromFIle<AnalyticsData> (StorageMethod.JSON, "ViewAnalyticsData");
-            
-			//currentPosition = analyticsData.positions [count];
-			//nextPosition = analyticsData.positions [count + 1];
-		}
+		{            
+            positions = new List<Vector4>(analyticsData.views.Count);
+
+            for (int i = 0; i < analyticsData.views.Count; i++)
+            {
+                positions.Add(Vector3.zero);
+            }
+        }
 	}
 		
 	private void OnVideoEnded (VideoPlayer video)
@@ -72,49 +99,77 @@ public class MovieAnalytics : MonoBehaviour
 		{
             analyticsData.views.Add(view);
 
-			DataStorage.SaveToFile<AnalyticsData> (analyticsData, StorageMethod.JSON, "ViewAnalyticsData");
+			DataStorage.SaveToFile<AnalyticsData> (analyticsData, StorageMethod.Binary, "ViewAnalyticsData");
 
 			Debug.Log ("Saved");
 		}
-	}
+        else
+        {
+            positions.Clear();
+            positions = null;
+        }
 
-	private Vector4 currentPosition, nextPosition;
+        CancelInvoke("TryToGetAnalyticsPoint");
+	}
+    
+    private void TryToGetAnalyticsPoint()
+    {
+        if (Quaternion.Angle(lastRotation, cameraTransform.rotation) > angleDifferenceToTriggerEvent)
+        {
+            Debug.Log("ANGLE CHANGED");
+
+            ViewPosition viewPosition;
+            viewPosition.x = cameraTransform.forward.x;
+            viewPosition.y = cameraTransform.forward.y;
+            viewPosition.z = cameraTransform.forward.z;
+
+            viewPosition.t = (float)player.time;
+
+            view.positions.Add(viewPosition);
+
+            lastRotation = cameraTransform.rotation;
+        }
+    }
 
 	private void Update()
 	{
-		if (isPlaying) 
+		if (isPlaying && mode == Mode.Read) 
 		{
-			if (mode == Mode.Write) 
-			{
-				if (Quaternion.Angle (lastRotation, cameraTransform.rotation) > angleDifferenceToTriggerEvent) {
-					Debug.Log ("ANGLE CHANGED");
-
-					Vector4 newPosition = cameraTransform.forward;
-					newPosition.w = (float)player.time;
-					view.positions.Add (newPosition);
-
-					lastRotation = cameraTransform.rotation;
-				}
-			} 
-			else 
-			{
-				//if ((float)player.time > nextPosition.w) 
-				//{
-				//	if (count + 1 < analyticsData.positions.Count) 
-				//	{
-				//		count++;
-
-				//		currentPosition = analyticsData.positions [count];
-				//		nextPosition = analyticsData.positions [count + 1];
-				//	}
-				//}
-
-				//float lerp = ((float)player.time - currentPosition.w) / (nextPosition.w - currentPosition.w);
-
-				//Vector3 position = Vector3.Lerp (currentPosition, nextPosition, lerp);
-
-				//heatmap.UpdatePosition (position);
-			}
+            UpdateGazePositions();
 		}
 	}
+
+    private void UpdateGazePositions()
+    {
+        for (int v = 0; v < analyticsData.views.Count; v++)
+        {
+            ViewData viewData = analyticsData.views[v];
+
+            int lastPosition = 0;
+            int nextPosition = 0;
+
+            for (int p = 0; p < viewData.positions.Count; p++)
+            {
+                if ((float)player.time > viewData.positions[p].t)
+                {
+                    lastPosition = p;
+                }
+                else
+                {
+                    nextPosition = p;
+
+                    break;
+                }
+            }
+
+            float lerp = ((float)player.time - viewData.positions[lastPosition].t) / (viewData.positions[nextPosition].t - viewData.positions[lastPosition].t);
+
+            Vector3 currentPosition = Vector3.Lerp(viewData.positions[lastPosition].GetPosition(), viewData.positions[nextPosition].GetPosition(), lerp);
+
+            positions[v] = currentPosition;
+        }
+        Debug.Log(positions.Count);
+
+        heatmap.UpdatePosition(positions);
+    }
 }
