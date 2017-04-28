@@ -1,50 +1,51 @@
-﻿Shader "Heatmap" 
+﻿Shader "Unlit/MovieHeatmap"
 {
 	Properties
 	{
-		_MovieTex("Texture", 2D) = "white" {}
+		_MainTex("Main Texture", 2D) = "white" {}
 		_HeatmapTex("Texture", 2D) = "white" {}
-		_Transparency("Transparency", Range(0,1)) =0.5
+		_Transparency("Transparency", Range(0,1)) = 0.5
 	}
-
 	SubShader
 	{
-		Tags{ "Queue" = "Transparent" }
+		Tags{ "RenderType" = "Transparent" }
+		
 		Blend SrcAlpha OneMinusSrcAlpha
 
-		Cull Front
+		Cull front
 
 		Pass
 		{
 			CGPROGRAM
-			#pragma vertex vert             
+			#pragma vertex vert
 			#pragma fragment frag
-
-			#include "UnityCG.cginc"
 			
+			#include "UnityCG.cginc"
+
 			struct appdata
 			{
 				float4 vertex : POSITION;
 				float2 uv : TEXCOORD0;
 			};
-		
+
 			struct v2f
 			{
-				float4 vertex : SV_POSITION;
 				float2 uv : TEXCOORD0;
+				float4 vertex : SV_POSITION; 
 				float3 worldPos : TEXCOORD1;
 			};
-			
-			sampler2D _MovieTex;
-			float4 _MovieTex_ST;
+
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			float4 _Color;
 			sampler2D _HeatmapTex;
 
 			v2f vert(appdata v)
 			{
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
+				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 				o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-				o.uv = TRANSFORM_TEX(v.uv, _MovieTex);
 				return o;
 			}
 
@@ -52,15 +53,13 @@
 			uniform float3 _Points[100];
 			uniform float _Radius;
 
-			half _Transparency;
-
-			half4 frag(v2f o) : SV_Target
+			half GetFalloff(float3 worldPos)
 			{
 				half h = 0;
 
 				for (int i = 0; i < _PointsLength; i++)
 				{
-					float3 worldPosition = o.worldPos;
+					float3 worldPosition = worldPos;
 					worldPosition = normalize(worldPosition);
 					float3 pointPos = _Points[i].xyz;
 					pointPos = normalize(pointPos);
@@ -79,16 +78,19 @@
 
 				h /= _PointsLength;
 
-				half4 movie = tex2D(_MovieTex, fixed2(1 - o.uv.x, o.uv.y));
-				half4 heat = tex2D(_HeatmapTex, fixed2(h, 0.5));
-
-				half4 final = lerp(movie, heat, _Transparency);
-				return final;
+				return h;
 			}
 
+			half _Transparency;
+
+			fixed4 frag(v2f i) : SV_Target
+			{
+				half h = GetFalloff(i.worldPos);
+				fixed4 movie = tex2D(_MainTex, fixed2(1 - i.uv.x, i.uv.y));
+				fixed4 heat = tex2D(_HeatmapTex, fixed2(h, 0.5));
+				return lerp(movie, heat, _Transparency);
+			}
 			ENDCG
 		}
 	}
-
-	Fallback "Diffuse"
 }

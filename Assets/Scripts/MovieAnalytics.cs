@@ -16,26 +16,13 @@ public class MovieAnalytics : MonoBehaviour
 
 	[SerializeField] private float angleDifferenceToTriggerEvent = 2f;
 
-	private AnalyticsData analyticsData;
+    private ViewData view;
 
-	private int count = 0;
+	private AnalyticsData analyticsData;
 
 	private bool isPlaying = false;
 
 	private Quaternion lastRotation;
-
-	private int Counter
-	{
-		get 
-		{
-			return PlayerPrefs.GetInt ("C");
-		}
-
-		set 
-		{
-			PlayerPrefs.SetInt ("C", value);
-		}
-	}
 
 	private void Awake()
 	{
@@ -61,15 +48,19 @@ public class MovieAnalytics : MonoBehaviour
 
 		if (mode == Mode.Write) 
 		{
-			analyticsData = new AnalyticsData ();
+            analyticsData = DataStorage.LoadFromFIle<AnalyticsData>(StorageMethod.JSON, "ViewAnalyticsData");
+
+            if(analyticsData == null)
+                analyticsData = new AnalyticsData ();
+
+            view = new ViewData();
 		}
 		else 
 		{
-			analyticsData = DataStorage.LoadFromFIle<AnalyticsData> (StorageMethod.JSON, Counter.ToString ());
-
-			count = 0;
-			currentPosition = analyticsData.positions [count];
-			nextPosition = analyticsData.positions [count + 1];
+			analyticsData = DataStorage.LoadFromFIle<AnalyticsData> (StorageMethod.JSON, "ViewAnalyticsData");
+            
+			//currentPosition = analyticsData.positions [count];
+			//nextPosition = analyticsData.positions [count + 1];
 		}
 	}
 		
@@ -79,7 +70,9 @@ public class MovieAnalytics : MonoBehaviour
 
 		if (mode == Mode.Write) 
 		{
-			DataStorage.SaveToFile<AnalyticsData> (analyticsData, StorageMethod.JSON, (++Counter).ToString ());
+            analyticsData.views.Add(view);
+
+			DataStorage.SaveToFile<AnalyticsData> (analyticsData, StorageMethod.JSON, "ViewAnalyticsData");
 
 			Debug.Log ("Saved");
 		}
@@ -98,29 +91,29 @@ public class MovieAnalytics : MonoBehaviour
 
 					Vector4 newPosition = cameraTransform.forward;
 					newPosition.w = (float)player.time;
-					analyticsData.positions.Add (newPosition);
+					view.positions.Add (newPosition);
 
 					lastRotation = cameraTransform.rotation;
 				}
 			} 
 			else 
 			{
-				if ((float)player.time > nextPosition.w) 
-				{
-					if (count + 1 < analyticsData.positions.Count) 
-					{
-						count++;
+				//if ((float)player.time > nextPosition.w) 
+				//{
+				//	if (count + 1 < analyticsData.positions.Count) 
+				//	{
+				//		count++;
 
-						currentPosition = analyticsData.positions [count];
-						nextPosition = analyticsData.positions [count + 1];
-					}
-				}
+				//		currentPosition = analyticsData.positions [count];
+				//		nextPosition = analyticsData.positions [count + 1];
+				//	}
+				//}
 
-				float lerp = ((float)player.time - currentPosition.w) / (nextPosition.w - currentPosition.w);
+				//float lerp = ((float)player.time - currentPosition.w) / (nextPosition.w - currentPosition.w);
 
-				Vector3 position = Vector3.Lerp (currentPosition, nextPosition, lerp);
+				//Vector3 position = Vector3.Lerp (currentPosition, nextPosition, lerp);
 
-				heatmap.UpdatePosition (position);
+				//heatmap.UpdatePosition (position);
 			}
 		}
 	}
