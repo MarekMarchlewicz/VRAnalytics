@@ -88,7 +88,7 @@
 				half h = GetFalloff(i.worldPos);
 				fixed4 movie = tex2D(_MainTex, fixed2(1 - i.uv.x, i.uv.y));
 				fixed4 heat = tex2D(_HeatmapTex, fixed2(h, 0.5));
-				return lerp(movie, heat, _Transparency);
+				return lerp(movie, heat, heat.a);
 			}
 			ENDCG
 		}

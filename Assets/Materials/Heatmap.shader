@@ -82,7 +82,7 @@
 				half4 movie = tex2D(_MovieTex, fixed2(1 - o.uv.x, o.uv.y));
 				half4 heat = tex2D(_HeatmapTex, fixed2(h, 0.5));
 
-				half4 final = lerp(movie, heat, _Transparency);
+				half4 final = lerp(movie, heat, heat.a);
 				return final;
 			}
 

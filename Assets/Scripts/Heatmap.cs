@@ -23,24 +23,6 @@ public class Heatmap : MonoBehaviour
         positions = new Vector4[count];
 
 		material = GetComponent<MeshRenderer> ().material;
-
-        /*Texture2D heatTexture = new Texture2D(256, 32);
-        for(int x = 0; x < 256; x++)
-        {
-            for(int y = 0; y < 32; y++)
-            {
-                Color col = Color.black;
-
-                //col = Color.HSVToRGB(x / 255f, 1f, 1f); //
-                HSBColor hsb = new HSBColor(1f - Mathf.Lerp(0.6666f, 1f, x / 255f), 1f, 1f);
-                //col.b = Mathf.Clamp01((128 - x) / 128f);
-
-                heatTexture.SetPixel(x, y, hsb.ToColor());
-            }
-        }
-
-        System.IO.File.WriteAllBytes(Application.dataPath + "/HSB2.png", heatTexture.EncodeToPNG());
-        */
     }
 
     private void Update()

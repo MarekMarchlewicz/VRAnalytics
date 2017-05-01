@@ -162,6 +162,13 @@ public class MovieAnalytics : MonoBehaviour
                 }
             }
 
+            if (viewData.positions.Count == 0)
+            {
+                Debug.Log(v.ToString());
+
+                continue;
+            }
+
             float lerp = ((float)player.time - viewData.positions[lastPosition].t) / (viewData.positions[nextPosition].t - viewData.positions[lastPosition].t);
 
             Vector3 currentPosition = Vector3.Lerp(viewData.positions[lastPosition].GetPosition(), viewData.positions[nextPosition].GetPosition(), lerp);
