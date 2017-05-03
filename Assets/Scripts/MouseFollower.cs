@@ -8,13 +8,18 @@ public class MouseFollower : MonoBehaviour
     [SerializeField, Range(0, 1)]
     private float neckScaleModel;
 
-    private static readonly Vector3 neckOffset = new Vector3(0, 0.075f, 0.08f);
+    private readonly Vector3 neckOffset = new Vector3(0, 0.075f, 0.08f);
 
     private Quaternion initialRotation = Quaternion.identity;
 
-    private static float mouseX = 0;
-    private static float mouseY = 0;
-    private static float mouseZ = 0;
+    private float mouseX = 0;
+    private float mouseY = 0;
+    private float mouseZ = 0;
+
+    private void Start()
+    {
+        Cursor.visible = false;
+    }
 
     private void Update()
     {
