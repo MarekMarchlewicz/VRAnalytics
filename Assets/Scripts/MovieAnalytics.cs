@@ -19,7 +19,7 @@ public class MovieAnalytics : MonoBehaviour
     private Transform cameraTransform;
 
 	[SerializeField]
-    private float angleDifferenceToTriggerEvent = 2f;
+    private float minAngleDifference = 2f;
 
     [SerializeField]
     private float timeStep = 0.5f;
@@ -40,9 +40,6 @@ public class MovieAnalytics : MonoBehaviour
 
 		player.started += OnVideoStarted;
 		player.loopPointReached += OnVideoEnded;
-
-		if (player.isPlaying)
-			OnVideoStarted (player);
 	}
 
 	private void Start()
@@ -60,20 +57,14 @@ public class MovieAnalytics : MonoBehaviour
 
 	private void OnVideoStarted (VideoPlayer video)
 	{
-		Debug.Log ("Started");
-
 		isPlaying = true;
 
         analyticsData = DataStorage.LoadFromFIle<AnalyticsData>(StorageMethod.Binary, "ViewAnalyticsData");
         if (analyticsData == null)
         {
             analyticsData = new AnalyticsData();
-
-            Debug.Log("CREATING NEW ANALYTICS DATA");
         }
-
-        Debug.Log(analyticsData.views.Count.ToString() + "  views");
-
+        
         if (mode == Mode.Write) 
 		{
             view = new ViewData();
@@ -100,8 +91,6 @@ public class MovieAnalytics : MonoBehaviour
             analyticsData.views.Add(view);
 
 			DataStorage.SaveToFile<AnalyticsData> (analyticsData, StorageMethod.Binary, "ViewAnalyticsData");
-
-			Debug.Log ("Saved");
 		}
         else
         {
@@ -114,10 +103,8 @@ public class MovieAnalytics : MonoBehaviour
     
     private void TryToGetAnalyticsPoint()
     {
-        if (Quaternion.Angle(lastRotation, cameraTransform.rotation) > angleDifferenceToTriggerEvent)
+        if (Quaternion.Angle(lastRotation, cameraTransform.rotation) > minAngleDifference)
         {
-            Debug.Log("ANGLE CHANGED");
-
             ViewPosition viewPosition;
             viewPosition.x = cameraTransform.forward.x;
             viewPosition.y = cameraTransform.forward.y;
@@ -164,18 +151,15 @@ public class MovieAnalytics : MonoBehaviour
 
             if (viewData.positions.Count == 0)
             {
-                Debug.Log(v.ToString());
-
                 continue;
             }
 
             float lerp = ((float)player.time - viewData.positions[lastPosition].t) / (viewData.positions[nextPosition].t - viewData.positions[lastPosition].t);
 
             Vector3 currentPosition = Vector3.Lerp(viewData.positions[lastPosition].GetPosition(), viewData.positions[nextPosition].GetPosition(), lerp);
-
+            
             positions[v] = currentPosition;
         }
-        Debug.Log(positions.Count);
 
         heatmap.UpdatePosition(positions);
     }
